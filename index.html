@@ -1,0 +1,191 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>Shadow DOM</title>
+        <meta charset="utf8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="content-type" content="text/html, charset=utf8">
+        <meta name="X-UA-Compatible" content="IE=edge, chrome=1">
+        <style>
+            body {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                width:100%;
+                min-height: 100vh;
+                background-color: #f9fafc;
+                margin: 0;
+            }
+
+            #not-support {
+                display: block;
+                width: 50%;
+                margin: auto;
+                font-size: 28px;
+                font-family: Helvetica;
+                text-align: center;
+                line-height: 1.625em;
+                cursor: default;
+            }
+
+            ::selection, ::-webkit-selection {
+                background-color: rgba(0,123,255,.25);
+            }
+
+            suku-card {
+                display: none;
+                animation: card-fade-in .25s ease-out 0s 1;
+            }
+
+            @keyframes card-fade-in {
+                from { opacity: 0; }
+            }
+
+            noscript {
+                width: 100%;
+            }
+        </style>
+        <script>
+            class SukuCard extends HTMLElement {
+                constructor(){
+                    super()
+
+                    this.child = null
+                }
+                
+                static get observedAttributes(){
+                    return ["title"]
+                }
+
+                connectedCallback(){
+                    let element = this.attachShadow({ mode: "open" })
+                    let title = this.getAttribute("title") !== null ? this.getAttribute("title") : "Title"
+
+                    element.innerHTML = `
+                        <style id="style">
+                            * { box-sizing: border-box; }
+                            ::selection, ::-webkit-selection {
+                                background-color: rgba(0,123,255,.25);
+                            }
+                            #card {
+                                display: block;
+                                width: 275px;
+                                margin: 15px 0;
+                                padding: 5px 20px;
+                                background-color: #fff;
+                                box-shadow: 0 3px 5px rgba(0,0,0,.1);
+                                border-radius: 5px;
+                                transition: box-shadow .25s ease-out;
+                            }
+                            #card:hover,
+                            #card:focus {
+                                box-shadow: 0 7px 15px rgba(0,0,0,.15);
+                            }
+                            #title {
+                                font-family: Helvetica;
+                                color: #007aff;
+                                cursor: default;
+                            }
+                            #parent {
+                                display: flex;
+                                flex-direction: column;
+                                width: 100%;
+                                font-family: Helvetica;
+                            }
+                            p {
+                                font-size: 16px;
+                                cursor: default;
+                            }
+                        </style>
+                        <div id="card">
+                            <h1 id="title">${title}</h1>
+                            <div id="parent">
+                                ${this.children}
+                            </div>
+                        </div>
+                    `
+
+                    let config = {
+                        childList: true,
+                        characterData: true,
+                        subtree: true
+                    }
+
+                    let mutationCallback = (mutationsList, observer) => {
+                        mutationsList.forEach(mutation => {
+                            this.updateChildren(this.innerHTML)
+                        })
+                    }
+
+                    let mutationObserver = new MutationObserver(mutationCallback)
+                    mutationObserver.observe(this, config)
+                }
+
+                attributeChangedCallback(name, oldValue, newValue){
+                    if(name === "title") this.updateTitle(newValue)
+                }
+
+                updateTitle(title){
+                    if(this.shadowRoot === null)
+                        return false
+
+                    this.shadowRoot.getElementById("title").textContent = title
+                }
+
+                updateChildren(child){
+                    if(this.shadowRoot === null)
+                        return false
+
+                    if(child === "")
+                        return false
+
+                    this.shadowRoot.getElementById("parent").innerHTML = child
+                    this.innerHTML = null // Clean the element which isn't displayed.
+                }
+            }
+
+            customElements.define("suku-card", SukuCard)
+
+            document.addEventListener("DOMContentLoaded", () => {
+                if(!customElements || !document.head.attachShadow){
+                    /**
+                     * ? Display only when Web Component and Shadow Dom doesn't support .
+                     */
+                    let warningElement = document.createElement("h1")
+                    warningElement.textContent = "Sorry, this browser doesn't support Web Component and Shadow DOM."
+                    warningElement.id = "not-support"
+
+                    document.body.append(warningElement)
+                } else {
+                    /**
+                     * ? Since Custom Element is hidden, but Web Component is support, display those hidden custom element.
+                     */
+                    document.querySelectorAll("suku-card").forEach(customElement => {
+                        customElement.style.display = "unset"
+                    })
+                }
+            })
+        </script>
+    <body>
+        <suku-card title="Hello World">
+            <p>I'm a custom element known as Web Component!</p>
+            <div>
+                <p>
+                    I have a child support with nested element too!
+                </p>
+            </div>
+        </suku-card>
+        <suku-card title="Wait, what?">
+            <p>No, I'm the real Web Component here!</p>
+            <div>
+                <p>
+                    But Web Component is reusable, there're many Web Component.
+                </p>
+            </div>
+        </suku-card>
+        <noscript>
+            <h1 id="not-support">Sorry, but JavaScript is required to use Web Component.</h1>
+        </noscript>
+    </body>
+</html>
