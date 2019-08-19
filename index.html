@@ -148,7 +148,7 @@
             customElements.define("suku-card", SukuCard)
 
             document.addEventListener("DOMContentLoaded", () => {
-                if(!customElements || !document.head.attachShadow){
+                if(typeof customElements === "undefined" || !document.head.attachShadow){
                     /**
                      * ? Display only when Web Component and Shadow Dom doesn't support .
                      */
